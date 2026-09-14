@@ -1,11 +1,12 @@
+import logging
 import requests
 
 from pathlib import Path
-from rag.main import logger
 from contextlib import ExitStack
 from rag.utils import chech_mineru_health
 from rag.config import MINERU_BASE_URL, MINERU_PAYLOAD, SUPPORTED_EXTENSIONS
 
+logger = logging.getLogger(__name__)
 
 def parser(source: Path):
     source = source.expanduser().resolve()
@@ -50,19 +51,10 @@ def parser(source: Path):
 
         logger.info(f"Sending {len(documents)} documents to MinerU at {MINERU_BASE_URL}")
 
-        try:
-            response = requests.post(
-                f"{MINERU_BASE_URL}/file_parse",
-                data=MINERU_PAYLOAD,
-                files=files,
-            )
-            response.raise_for_status()
-        except requests.RequestException: # TODO: I should fix this later
-            logger.exception("MinerU parsing request failed")
-            raise
+        response = requests.post(f"{MINERU_BASE_URL}/file_parse", data=MINERU_PAYLOAD, files=files)
+        response.raise_for_status()
 
     logger.info(f"MinerU successfully parsed {len(documents)} documents")
-    logger.debug(f"MinerU response size: {response.content} bytes")
 
 
 if __name__ == "__main__":

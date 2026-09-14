@@ -11,3 +11,8 @@ wheels/
 
 # Environment Variables
 .env
+
+# documents for testing
+tests/documents/*
+output
+output.txt

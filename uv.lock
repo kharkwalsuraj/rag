@@ -669,6 +669,18 @@ wheels = [
 ]
 
 [[package]]
+name = "html-table-parse"
+version = "0.2.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "lxml" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/46/ff/9a6a96081f387e16a6e1f2cd0fb2d546ee11b411ced57f37d371402e4c27/html_table_parse-0.2.2.tar.gz", hash = "sha256:4c57fcfc440f54bb476902e14775d06007e06718ea4f04b077bd315cff058ffc", size = 3215, upload-time = "2026-06-28T13:18:13.437Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/79/f8/8be73d481d99f68767fb8e65ffea968992c0712fd033d7a8244281a00d55/html_table_parse-0.2.2-py3-none-any.whl", hash = "sha256:e8e202c8f193ed20fba0d49a7f0b526461cc4e4b4cfb46b0372b4d8a915f28f1", size = 3514, upload-time = "2026-06-28T13:18:11.442Z" },
+]
+
+[[package]]
 name = "httpcore"
 version = "1.0.9"
 source = { registry = "https://pypi.org/simple" }
@@ -1956,6 +1968,7 @@ name = "rag"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "html-table-parse" },
     { name = "langchain-text-splitters" },
     { name = "mineru", extra = ["core"] },
     { name = "ollama" },
@@ -1965,6 +1978,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "html-table-parse", specifier = ">=0.2.2" },
     { name = "langchain-text-splitters", specifier = ">=1.1.2" },
     { name = "mineru", extras = ["core"], specifier = ">=3.4.5" },
     { name = "ollama", specifier = ">=0.6.2" },

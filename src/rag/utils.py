@@ -1,8 +1,9 @@
+import logging
 import requests
 
 from rag.config import MINERU_BASE_URL, MINERU_PORT
-from rag.main import logger
 
+logger = logging.getLogger(__name__)
 
 def chech_mineru_health() :
     logger.info("Checking health of Mineru server...")

@@ -28,20 +28,27 @@ MINERU_PAYLOAD:dict[str, str] = {
 SUPPORTED_EXTENSIONS:set[str] = { ".pdf", ".doc", ".docx", ".ppt", ".pptx", ".xls", ".xlsx" }
 
 VLM_MODEL_ID:str = "qwen2.5vl:3b"
-VLM_PROMPT:str = """
-You are indexing images for a RAG system. Write a standalone, searchable description of this image.
+VLM_PROMPT: str = """
+You are indexing an image from a document for a RAG system.
 
-Context from the document around the image:
+Write a standalone, searchable description of the image.
+
+Context from the document surrounding the image:
 {context}
 
 Rules:
-- Describe what the image CONVEYS, not just what it looks like.
-- If chart/graph/table: include title, axes, labels, units, trends, key values.
-- If diagram: describe the flow, components, and relationships.
-- If photo/screenshot: describe main objects, people, actions, and visible text.
-- Use the context to resolve references like "this model", "the figure".
-- Do NOT hallucinate. If something is unreadable, say so.
-- Output type markdown.
+- Describe what the image conveys and its purpose in the document.
+- Use the document context to resolve references such as "this model", "the figure", or "the method".
+- For charts or graphs, include the title, axes, labels, units, trends, comparisons, and important values.
+- For tables, describe the columns, rows, and important relationships or values.
+- For diagrams, describe the components, flow, connections, and relationships.
+- For screenshots, describe the application/interface, important elements, and visible text.
+- For photos, describe the important objects, people, actions, and visible text.
+- Include important text that is clearly readable in the image.
+- Do not invent information.
+- If something is unreadable or ambiguous, explicitly say so.
+- Keep the description concise but sufficiently detailed for semantic search.
+- Return only the description. Do not add commentary about these instructions.
 
 Description:
 """
