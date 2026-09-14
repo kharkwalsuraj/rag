@@ -2,18 +2,29 @@ import logging
 import re
 
 from pathlib import Path
-
 from html_table_parse import to_dicts
 from rag.vlm import describe_image
 from langchain_core.documents import Document
-from langchain_text_splitters import MarkdownHeaderTextSplitter
+from langchain_text_splitters import (
+    MarkdownHeaderTextSplitter,
+    RecursiveCharacterTextSplitter,
+)
 
 
 logger = logging.getLogger(__name__)
+
 IMAGE_PATTERN = re.compile(r"!\[.*?\]\((.*?)\)")
 TABLE_PATTERN = re.compile(r"")
-HEADERS_TO_SPLIT_ON = [("#", "header1"), ("##", "header2"), ("###", "header3"), ("####", "header4")]
+HEADERS_TO_SPLIT_ON = [
+    ("#", "header1"),
+    ("##", "header2"),
+    ("###", "header3"),
+    ("####", "header4"),
+]
+
+MAX_CHUNK_SIZE = 1500
 splitter = MarkdownHeaderTextSplitter(HEADERS_TO_SPLIT_ON, strip_headers=False)
+size_splitter = RecursiveCharacterTextSplitter(chunk_size=MAX_CHUNK_SIZE, chunk_overlap=150)
 
 
 def create_chunks() -> list[Document]:
@@ -24,7 +35,6 @@ def create_chunks() -> list[Document]:
 
     for md_file in cwd.glob("output/*/*/*/*.md"):
         logger.info(f"Processing: {md_file}")
-
         with open(md_file, "r", encoding="utf-8") as f:
             content = f.read()
 
@@ -35,13 +45,14 @@ def create_chunks() -> list[Document]:
         for chunk in chunks:
             final_chunks.append(refine_chunks(chunk, md_file))
 
+    final_chunks = split_large_chunks(final_chunks)
     logger.info(f"Created {len(final_chunks)} final chunks")
 
     return final_chunks
 
+
 def flatten_table(table_html: str) -> str:
     rows = to_dicts(table_html)
-
     return "\n".join(
         " | ".join(f"{key}: {value}" for key, value in row.items())
         for row in rows
@@ -68,6 +79,7 @@ def refine_chunks(chunk: Document, file: Path) -> Document:
 
         image_reference = f"![]({image})"
         chunk.page_content = chunk.page_content.replace(image_reference, image_description)
+
         chunk.metadata["images"].append(str(image_path))
 
     tables: list[str] = TABLE_PATTERN.findall(chunk.page_content)
@@ -75,8 +87,10 @@ def refine_chunks(chunk: Document, file: Path) -> Document:
 
     for table in tables:
         flattened_table = flatten_table(table)
+
         chunk.page_content = chunk.page_content.replace(table, flattened_table)
         chunk.metadata["tables_html"].append(table)
+
         logger.debug(f"Flattened table:\n{flattened_table}")
 
     logger.debug(f"Refined chunk:\n{chunk.page_content}")
@@ -84,7 +98,30 @@ def refine_chunks(chunk: Document, file: Path) -> Document:
 
     return chunk
 
-if __name__ == "__main__" :
+
+def split_large_chunks(chunks: list[Document]) -> list[Document]:
+    final_chunks: list[Document] = []
+
+    for chunk in chunks:
+        size = len(chunk.page_content)
+
+        if size <= MAX_CHUNK_SIZE:
+            final_chunks.append(chunk)
+            continue
+
+        logger.debug(f"Splitting large chunk: {size} characters")
+        split_chunks = size_splitter.split_documents([chunk])
+        logger.debug(f"Split large chunk into {len(split_chunks)} chunks")
+        final_chunks.extend(split_chunks)
+
+    return final_chunks
+
+
+if __name__ == "__main__":
     chunks = create_chunks()
-    print(chunks)
-    logger.info(f"{len(chunks)} chuncks created")
+
+    for i, chunk in enumerate(chunks):
+        print(f"\n--- Chunk {i} ({len(chunk.page_content)} chars) ---")
+        print(chunk.page_content)
+
+    logger.info(f"{len(chunks)} chunks created")
