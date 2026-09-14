@@ -25,7 +25,7 @@ MINERU_PAYLOAD:dict[str, str] = {
     "return_original_file": "false",
     "formula_enable": "true",
 }
-SUPPORTED_EXTENSIONS:set[str] = { ".pdf", ".doc", ".docx", ".ppt", ".pptx", ".xls", ".xlsx", ".png", ".jpg", ".jpeg", ".webp" }
+SUPPORTED_EXTENSIONS:set[str] = { ".pdf", ".doc", ".docx", ".ppt", ".pptx", ".xls", ".xlsx" }
 
 VLM_MODEL_ID:str = "qwen2.5vl:3b"
 VLM_PROMPT:str = """

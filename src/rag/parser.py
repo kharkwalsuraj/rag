@@ -62,13 +62,14 @@ def parser(source: Path):
             raise
 
     logger.info(f"MinerU successfully parsed {len(documents)} documents")
-    logger.debug(f"MinerU response size: {response.json()} bytes")
+    logger.debug(f"MinerU response size: {response.content} bytes")
 
 
 if __name__ == "__main__":
     logger.info("Starting MinerU parser")
 
+    cwd = Path.cwd()
+
     chech_mineru_health()
-# TODO : use cwd instead of the ~/
-    source = Path("~/rag/tests/documents")
+    source = cwd/ "tests" / "documents"
     parser(source)
