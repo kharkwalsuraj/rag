@@ -1,8 +1,16 @@
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 
 _ = load_dotenv()
 
+def get_output_dir () :
+    d = Path.cwd() / "output"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+EMBEDDING_MODEL="bge-m3"
+COLLECTION_NAME="vectors"
 MINERU_PORT:str=os.environ["MINERU_PORT"]
 MINERU_BASE_URL:str=f"http://localhost:{MINERU_PORT}"
 MINERU_PAYLOAD:dict[str, str] = {

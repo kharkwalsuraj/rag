@@ -1,8 +1,10 @@
 import logging
 import re
+import json
 
 from pathlib import Path
 from html_table_parse import to_dicts
+from rag.config import get_output_dir
 from rag.vlm import describe_image
 from langchain_core.documents import Document
 from langchain_text_splitters import (
@@ -14,7 +16,7 @@ from langchain_text_splitters import (
 logger = logging.getLogger(__name__)
 
 IMAGE_PATTERN = re.compile(r"!\[.*?\]\((.*?)\)")
-TABLE_PATTERN = re.compile(r"")
+TABLE_PATTERN = re.compile(r"<table>.*?</table>", re.DOTALL)
 HEADERS_TO_SPLIT_ON = [
     ("#", "header1"),
     ("##", "header2"),
@@ -45,8 +47,19 @@ def create_chunks() -> list[Document]:
         for chunk in chunks:
             final_chunks.append(refine_chunks(chunk, md_file))
 
-    final_chunks = split_large_chunks(final_chunks)
+    # final_chunks = split_large_chunks(final_chunks)
+    #TODO: most of the chunk size is fine, I will see it later on
     logger.info(f"Created {len(final_chunks)} final chunks")
+    output_file = get_output_dir() / "chunks.json"
+    with open(output_file, "w", encoding="utf-8") as f:
+        json.dump([
+                {"page_content": chunk.page_content, "metadata": chunk.metadata}
+                for chunk in final_chunks
+            ],f,
+            ensure_ascii=False, indent=2,
+        )
+
+    logger.info(f"Wrote chunks to {output_file}")
 
     return final_chunks
 
@@ -63,6 +76,8 @@ def refine_chunks(chunk: Document, file: Path) -> Document:
     chunk.metadata["source"] = str(file)
     chunk.metadata.setdefault("images", [])
     chunk.metadata.setdefault("tables_html", [])
+    chunk.metadata.setdefault("images_description", [])
+    chunk.metadata.setdefault("tables_flatten", [])
 
     images: list[str] = IMAGE_PATTERN.findall(chunk.page_content)
     logger.debug(f"Found {len(images)} images in chunk: {images}")
@@ -81,6 +96,7 @@ def refine_chunks(chunk: Document, file: Path) -> Document:
         chunk.page_content = chunk.page_content.replace(image_reference, image_description)
 
         chunk.metadata["images"].append(str(image_path))
+        chunk.metadata["images_description"].append(image_description)
 
     tables: list[str] = TABLE_PATTERN.findall(chunk.page_content)
     logger.debug(f"Found {len(tables)} tables in chunk")
@@ -90,6 +106,7 @@ def refine_chunks(chunk: Document, file: Path) -> Document:
 
         chunk.page_content = chunk.page_content.replace(table, flattened_table)
         chunk.metadata["tables_html"].append(table)
+        chunk.metadata["tables_flatten"].append(flattened_table)
 
         logger.debug(f"Flattened table:\n{flattened_table}")
 
