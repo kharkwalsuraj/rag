@@ -24,6 +24,8 @@ from typing import Any
 from collections.abc import Iterable, Sequence
 from dotenv import load_dotenv
 
+from rag.settings import settings
+
 load_dotenv()
 API_BASE = "https://mineru.net/api/v4"
 MAX_FILE_BYTES = 200_000_000
@@ -831,6 +833,7 @@ def parse_document_to_chunks(
 
 
 if __name__ == "__main__" :
-    cwd = Path.cwd()
-    docs = cwd / "tests" / "documents"
-    parse_document_to_chunks(source=docs, mineru_output_dir=cwd / "output" / "mineru")
+    parse_document_to_chunks(
+        source=settings.documents_dir,
+        mineru_output_dir=settings.mineru_output_dir
+    )

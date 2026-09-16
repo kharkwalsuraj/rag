@@ -29,7 +29,19 @@ class EmbeddedChunk:
     embedding: list[float]
 
 
-class Embedd:
+@dataclass
+class RetrievedChunk:
+    score: float
+    chunk_id: str
+    source: str
+    page_no: str
+    content_type: str
+    section_title: str
+    chunk_text: str
+    image_path: str
+
+
+class Embed:
     def __init__(self, model_id: str = "bge-m3"):
         self.model_id = model_id
 
@@ -67,21 +79,19 @@ class Qdrant:
         self.output_dir = qdrant_output_dir
         self.collection_name = collection_name
 
-        self.client = self.create_qdrant_client()
+        self.client = self._create_qdrant_client()
 
-    def create_qdrant_client(self) -> QdrantClient:
+    def _create_qdrant_client(self):
         self.output_dir.mkdir(parents=True, exist_ok=True)
-
         client = QdrantClient(path=str(self.output_dir))
 
-        if not client.collection_exists(self.collection_name):
-            client.create_collection(
-                collection_name=self.collection_name,
-                vectors_config=VectorParams(
-                    size=1024,
-                    distance=Distance.COSINE,
-                ),
-            )
+        if client.collection_exists(self.collection_name):
+            client.delete_collection(self.collection_name)
+
+        client.create_collection(
+            collection_name=self.collection_name,
+            vectors_config=VectorParams(size=1024, distance=Distance.COSINE)
+        )
 
         return client
 
@@ -109,8 +119,7 @@ class Qdrant:
             points=points,
         )
 
-    def get(self, query: str, limit: int = 10) -> list[dict]:
-        query_embedding = self.embedder.embed_query(query)
+    def get(self, query_embedding: list[float], limit: int = 20):
 
         results = self.client.query_points(
             collection_name=self.collection_name,
@@ -119,10 +128,13 @@ class Qdrant:
             with_payload=True,
         )
 
-        return [
+        res = [
             {"score": point.score, **point.payload }
             for point in results.points
         ]
+        print(res[0])
+        return res
+
 
     def close (self) :
         self.client.close()

@@ -1,0 +1,23 @@
+from pathlib import Path
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class RAGSettings(BaseSettings):
+
+    output_dir: Path = Path.cwd() / "outputs"
+    qdrant_output_dir: Path = Path.cwd() / "outputs" / "qdrant"
+    mineru_output_dir: Path = Path.cwd() / "outputs" /  "mineru"
+    documents_dir : Path = Path.cwd() / "tests" / "documemts"
+
+    embedding_model_id: str = "bge-m3"
+    reranker_model_id: str = "bge-reranker-v2-m3"
+
+    qdrant_collection_name: str = "knowledge_base"
+
+    embedding_size: int = 1024
+
+    model_config = SettingsConfigDict(env_prefix="RAG_")
+
+
+settings = RAGSettings()

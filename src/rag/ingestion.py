@@ -2,8 +2,9 @@ import json
 
 from pathlib import Path
 from qdrant_client.models import PointStruct
-from rag.lib import Chunk, COLLECTION_NAME, embedd, create_qdrant_client
-
+from rag.lib import Chunk, Embed, Qdrant
+from dataclasses import dataclass
+from rag.settings import settings
 
 def _load_chunks(mineru_output_dir: Path) -> list[Chunk]:
     chunks: list[Chunk] = []
@@ -19,18 +20,20 @@ def _load_chunks(mineru_output_dir: Path) -> list[Chunk]:
     return chunks
 
 
-def embeddings_handler(mineru_output_dir: Path, qdrant_output_dir: Path):
+def ingestion_handler(mineru_output_dir: Path, qdrant_output_dir: Path, collection_name:str):
     """
     Embed document chunks and store the resulting vectors in local Qdrant.
-
     Args:
         mineru_output_dir:
             Root directory containing MinerU outputs.
-
         qdrant_output_dir:
             Directory where the local Qdrant database is stored.
+        collection_name:
+            qdrant collection name
     """
     print("[Ingestion] Loading chunks")
+    embeder = Embed()
+    qdrant = Qdrant(qdrant_output_dir, collection_name)
     chunks = _load_chunks(mineru_output_dir)
 
     if not chunks:
@@ -38,45 +41,16 @@ def embeddings_handler(mineru_output_dir: Path, qdrant_output_dir: Path):
         return
 
     print(f"[Ingestion] Loaded {len(chunks)} chunks.")
-    embedded_chunks = [embedd(chunk) for chunk in chunks]
+    embedded_chunks = embeder.embed_chunks(chunks)
     print(f"[Ingestion] Generated {len(embedded_chunks)} embeddings.")
-    client = create_qdrant_client(qdrant_output_dir)
-
-    try:
-        points = [
-            PointStruct(
-                id=chunk.chunk_id,
-                vector=chunk.embedding,
-                payload={
-                    "source": chunk.source,
-                    "page_no": chunk.page_no,
-                    "content_type": chunk.content_type,
-                    "section_title": chunk.section_title,
-                    "chunk_text": chunk.chunk_text,
-                    "image_path": chunk.image_path,
-                },
-            )
-            for chunk in embedded_chunks
-        ]
-
-        if points:
-            client.upsert(collection_name=COLLECTION_NAME, points=points)
-
-    finally:
-        client.close()
-
-    print(f"[Ingestion] Stored {len(embedded_chunks)} vectors in Qdrant collection '{COLLECTION_NAME}'.")
+    qdrant.set(embedded_chunks)
+    print(f"[Ingestion] Stored {len(embedded_chunks)} vectors in Qdrant collection '{collection_name}'.")
+    qdrant.close()
 
 
 if __name__ == "__main__":
-    cwd = Path.cwd()
-
-    mineru_output_dir = cwd / "output" / "mineru"
-    qdrant_output_dir = cwd / "output" / "qdrant"
-
-    embeddings_handler(mineru_output_dir, qdrant_output_dir,)
-
-
-
-
-# TODO: fix whole code
+    ingestion_handler(
+        settings.mineru_output_dir,
+        settings.qdrant_output_dir,
+        settings.qdrant_collection_name
+    )

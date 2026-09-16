@@ -14,4 +14,4 @@ wheels/
 
 # documents for testing
 tests/documents/*
-output
+outputs
