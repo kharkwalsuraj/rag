@@ -1,36 +1,20 @@
-from rag.lib import Embed, Qdrant, Reranker
+from rag.lib import Embed, Qdrant, Reranker, LLM
 from rag.settings import settings
 
 
-def retrieve_answers(query: str, top_k: int = 5) -> list:
+def retrieve_answers(query: str, top_k: int = 5):
     """
-    Retrieve and rerank relevant document chunks for a user query.
-
-    The function generates an embedding for the query, retrieves the
-    most similar chunks from Qdrant, reranks the retrieved chunks using
-    a cross-encoder, and returns the top-ranked results.
-
-    Args:
-        query: User's question or search query.
-        top_k: Number of top-ranked chunks to return after reranking.
-
-    Returns:
-        A list of the most relevant document chunks, including their
-        Qdrant and reranker scores.
+    Retrieve, rerank, and generate an answer for a user query.
     """
     print(f"[Retrieve] Query: {query}")
 
-    print("[Retrieve] Loading embedding model")
     embedder = Embed()
-
-    print("[Retrieve] Connecting to Qdrant")
     qdrant = Qdrant(
         settings.qdrant_output_dir,
         settings.qdrant_collection_name,
     )
-
-    print("[Retrieve] Loading reranker")
     reranker = Reranker()
+    llm = LLM()
 
     try:
         print("[Retrieve] Generating query embedding")
@@ -53,10 +37,15 @@ def retrieve_answers(query: str, top_k: int = 5) -> list:
 
         print(f"[Retrieve] Selected top {len(ranked_chunks)} chunks")
 
-        return ranked_chunks
+        print("[Retrieve] Generating LLM response")
+        response = llm.generate_answer(
+            query=query,
+            chunks=ranked_chunks,
+        )
+
+        return { "answer" :response, "source": ranked_chunks}
 
     finally:
-        print("[Retrieve] Closing Qdrant")
         qdrant.close()
 
 
@@ -66,14 +55,7 @@ if __name__ == "__main__":
     if not query:
         raise SystemExit("[Retrieve] Query cannot be empty")
 
-    results = retrieve_answers(query)
+    response = retrieve_answers(query)
 
-    print("\n[Retrieve] Final results:")
-
-    for i, chunk in enumerate(results, 1):
-        print(f"\n[Retrieve] --- Result {i} ---")
-        print(f"[Retrieve] Qdrant score: {chunk.metadata.qdrant_score:.4f}")
-        print(f"[Retrieve] Reranker score: {chunk.metadata.reranker_score:.4f}")
-        print(f"[Retrieve] Source: {chunk.metadata.source}")
-        print(f"[Retrieve] Page: {chunk.metadata.page_no}")
-        print(f"[Retrieve] Section: {chunk.metadata.section_title}")
+    print("\n[Retrieve] Final response:")
+    print(response)

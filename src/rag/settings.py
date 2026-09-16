@@ -1,9 +1,15 @@
+import os
 from pathlib import Path
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 class RAGSettings(BaseSettings):
+
+    google_api: str = os.environ["GOOGLE_API"]
 
     output_dir: Path = Path.cwd() / "outputs"
     qdrant_output_dir: Path = Path.cwd() / "outputs" / "qdrant"
@@ -19,6 +25,5 @@ class RAGSettings(BaseSettings):
     embedding_size: int = 1024
 
     model_config = SettingsConfigDict(env_prefix="RAG_")
-
 
 settings = RAGSettings()
