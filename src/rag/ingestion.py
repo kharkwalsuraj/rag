@@ -1,56 +1,136 @@
 import json
 
-from pathlib import Path
-from qdrant_client.models import PointStruct
-from rag.lib import Chunk, Embed, Qdrant
 from dataclasses import dataclass
+from pathlib import Path
+from uuid import NAMESPACE_URL, uuid5
+
+from rag.lib import Chunk, Embed, Metadata, Qdrant
 from rag.settings import settings
 
-def _load_chunks(mineru_output_dir: Path) -> list[Chunk]:
-    chunks: list[Chunk] = []
 
-    for file in mineru_output_dir.glob("*/output/kb_chunks.jsonl"):
+def _load_chunks(mineru_output_dir: Path) -> list[Chunk]:
+    print(f"[Ingestion] Searching for chunks in: {mineru_output_dir}")
+
+    chunks: list[Chunk] = []
+    files = list(mineru_output_dir.glob("*/output/kb_chunks.jsonl"))
+
+    print(f"[Ingestion] Found {len(files)} JSONL files")
+
+    for file in files:
+        print(f"[Ingestion] Reading: {file}")
+
+        file_chunks = 0
+
         with file.open("r", encoding="utf-8") as f:
             for line in f:
                 if not line.strip():
                     continue
 
-                chunks.append(Chunk(**json.loads(line)))
+                data = json.loads(line)
+
+                chunk = Chunk(
+                    chunk_text=data["chunk_text"],
+                    metadata=Metadata(
+                        chunk_id=str(
+                            uuid5(
+                                NAMESPACE_URL,
+                                data["chunk_id"],
+                            )
+                        ),
+                        source=data["chunk_id"],
+                        page_no=data["page_no"],
+                        content_type=data["content_type"],
+                        section_title=data["section_title"],
+                        image_path=data["image_path"],
+                    ),
+                )
+
+                chunks.append(chunk)
+                file_chunks += 1
+
+        print(
+            f"[Ingestion] Loaded {file_chunks} chunks from {file.name}"
+        )
+
+    print(f"[Ingestion] Total chunks loaded: {len(chunks)}")
 
     return chunks
 
 
-def ingestion_handler(mineru_output_dir: Path, qdrant_output_dir: Path, collection_name:str):
+def ingestion_handler(
+    mineru_output_dir: Path,
+    qdrant_output_dir: Path,
+    collection_name: str,
+) -> None:
     """
-    Embed document chunks and store the resulting vectors in local Qdrant.
+    Ingest document chunks from MinerU output into a local Qdrant database.
+
+    The function reads chunk data from JSONL files in the MinerU output
+    directory, generates embeddings for each chunk, and stores the
+    embedded chunks as vectors in the specified Qdrant collection.
+
     Args:
-        mineru_output_dir:
-            Root directory containing MinerU outputs.
-        qdrant_output_dir:
-            Directory where the local Qdrant database is stored.
-        collection_name:
-            qdrant collection name
+        mineru_output_dir: Directory containing MinerU document outputs
+            and their `kb_chunks.jsonl` files.
+        qdrant_output_dir: Directory used to persist the local Qdrant
+            database.
+        collection_name: Name of the Qdrant collection in which the
+            embedded chunks are stored.
+
+    Returns:
+        None
     """
+
+    print("[Ingestion] Starting ingestion pipeline")
+
     print("[Ingestion] Loading chunks")
-    embeder = Embed()
-    qdrant = Qdrant(qdrant_output_dir, collection_name)
     chunks = _load_chunks(mineru_output_dir)
 
     if not chunks:
-        print("[Ingestion] No chunks found.")
+        print("[Ingestion] No chunks found. Exiting.")
         return
 
-    print(f"[Ingestion] Loaded {len(chunks)} chunks.")
-    embedded_chunks = embeder.embed_chunks(chunks)
-    print(f"[Ingestion] Generated {len(embedded_chunks)} embeddings.")
-    qdrant.set(embedded_chunks)
-    print(f"[Ingestion] Stored {len(embedded_chunks)} vectors in Qdrant collection '{collection_name}'.")
-    qdrant.close()
+    print(f"[Ingestion] Loaded {len(chunks)} chunks")
+
+    print("[Ingestion] Initializing embedding model")
+    embedder = Embed()
+
+    print("[Ingestion] Initializing Qdrant")
+    qdrant = Qdrant(
+        qdrant_output_dir,
+        collection_name,
+    )
+
+    try:
+        print("[Ingestion] Generating embeddings")
+
+        embedded_chunks = embedder.embed_chunks(chunks)
+
+        print(
+            f"[Ingestion] Generated "
+            f"{len(embedded_chunks)} embeddings"
+        )
+
+        print("[Ingestion] Storing vectors in Qdrant")
+
+        qdrant.set(embedded_chunks)
+
+        print(
+            f"[Ingestion] Stored {len(embedded_chunks)} vectors "
+            f"in Qdrant collection '{collection_name}'"
+        )
+
+    finally:
+        print("[Ingestion] Closing Qdrant")
+
+        qdrant.close()
+
+        print("[Ingestion] Ingestion complete")
 
 
 if __name__ == "__main__":
     ingestion_handler(
         settings.mineru_output_dir,
         settings.qdrant_output_dir,
-        settings.qdrant_collection_name
+        settings.qdrant_collection_name,
     )

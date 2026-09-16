@@ -8,6 +8,7 @@ dependencies = [
     "ollama>=0.6.2",
     "python-dotenv>=1.2.3",
     "qdrant-client>=1.19.0",
+    "sentence-transformers>=6.0.1",
 ]
 
 [project.scripts]
