@@ -1,15 +1,16 @@
 import ollama
 
-from dataclasses import dataclass
-from pathlib import Path
-from sentence_transformers import CrossEncoder
-from qdrant_client import QdrantClient
-from qdrant_client.models import Distance, PointStruct, VectorParams
-from rag.settings import settings
 from google import genai
+from pathlib import Path
 from google.genai import types
+from rag.settings import settings
+from dataclasses import dataclass
+from qdrant_client import QdrantClient
+from sentence_transformers import CrossEncoder, SentenceTransformer
+from qdrant_client.models import Distance, PointStruct, VectorParams
 
 
+# TODO: put a threshold and if less then that return I dont know
 
 @dataclass
 class Metadata:
@@ -29,23 +30,34 @@ class Chunk:
     metadata: Metadata
     embeddings: list[float] | None = None
 
+
 class Embed:
-    def __init__(self, model_id: str = "bge-m3"):
-        self.model_id = model_id
+    def __init__(self, model_id: str = "BAAI/bge-m3"):
+        self.model = SentenceTransformer(model_id)
 
     def _embed(self, text: str) -> list[float]:
-        response = ollama.embed(
-            model=self.model_id,
-            input=text,
+        embedding = self.model.encode(
+            text,
+            normalize_embeddings=True,
         )
-        return response["embeddings"][0]
+
+        return embedding.tolist()
 
     def embed_query(self, query: str) -> list[float]:
         return self._embed(query)
 
     def embed_chunks(self, chunks: list[Chunk]) -> list[Chunk]:
-        for chunk in chunks:
-            chunk.embeddings = self._embed(chunk.chunk_text)
+        texts = [chunk.chunk_text for chunk in chunks]
+
+        embeddings = self.model.encode(
+            texts,
+            batch_size=32,
+            normalize_embeddings=True,
+            show_progress_bar=True,
+        )
+
+        for chunk, embedding in zip(chunks, embeddings):
+            chunk.embeddings = embedding.tolist()
 
         return chunks
 
