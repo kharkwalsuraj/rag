@@ -5,7 +5,7 @@ from pathlib import Path
 from uuid import NAMESPACE_URL, uuid5
 
 from rag.lib import Chunk, Embed, Metadata, Qdrant
-from rag.settings import settings
+from rag.config import config
 
 
 def _load_chunks(mineru_output_dir: Path) -> list[Chunk]:
@@ -48,12 +48,9 @@ def _load_chunks(mineru_output_dir: Path) -> list[Chunk]:
                 chunks.append(chunk)
                 file_chunks += 1
 
-        print(
-            f"[Ingestion] Loaded {file_chunks} chunks from {file.name}"
-        )
+        print(f"[Ingestion] Loaded {file_chunks} chunks from {file.name}")
 
     print(f"[Ingestion] Total chunks loaded: {len(chunks)}")
-
     return chunks
 
 
@@ -82,8 +79,6 @@ def ingestion_handler(
     """
 
     print("[Ingestion] Starting ingestion pipeline")
-
-    print("[Ingestion] Loading chunks")
     chunks = _load_chunks(mineru_output_dir)
 
     if not chunks:
@@ -91,46 +86,25 @@ def ingestion_handler(
         return
 
     print(f"[Ingestion] Loaded {len(chunks)} chunks")
-
-    print("[Ingestion] Initializing embedding model")
     embedder = Embed()
-
-    print("[Ingestion] Initializing Qdrant")
-    qdrant = Qdrant(
-        qdrant_output_dir,
-        collection_name,
-    )
+    qdrant = Qdrant()
 
     try:
         print("[Ingestion] Generating embeddings")
-
         embedded_chunks = embedder.embed_chunks(chunks)
-
-        print(
-            f"[Ingestion] Generated "
-            f"{len(embedded_chunks)} embeddings"
-        )
-
+        print(f"[Ingestion] Generated {len(embedded_chunks)} embeddings")
         print("[Ingestion] Storing vectors in Qdrant")
-
         qdrant.set(embedded_chunks)
-
-        print(
-            f"[Ingestion] Stored {len(embedded_chunks)} vectors "
-            f"in Qdrant collection '{collection_name}'"
-        )
+        print(f"in Qdrant collection '{collection_name}'")
 
     finally:
-        print("[Ingestion] Closing Qdrant")
-
         qdrant.close()
-
         print("[Ingestion] Ingestion complete")
 
 
 if __name__ == "__main__":
     ingestion_handler(
-        settings.mineru_output_dir,
-        settings.qdrant_output_dir,
-        settings.qdrant_collection_name,
+        config.mineru_output_dir,
+        config.qdrant_output_dir,
+        config.qdrant_collection_name,
     )

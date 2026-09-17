@@ -1,39 +1,27 @@
 from rag.lib import Embed, Qdrant, Reranker, LLM
-from rag.settings import settings
+from rag.config import config
 
 
 def retrieve_answers(query: str, top_k: int = 5):
     """
     Retrieve, rerank, and generate an answer for a user query.
     """
-    print(f"[Retrieve] Query: {query}")
-
     embedder = Embed()
-    qdrant = Qdrant(
-        settings.qdrant_output_dir,
-        settings.qdrant_collection_name,
-    )
+    qdrant = Qdrant()
     reranker = Reranker()
     llm = LLM()
 
     try:
-        print("[Retrieve] Generating query embedding")
+        print("[Retrieve] Generating query embedding ... (be patient)")
         query_embedding = embedder.embed_query(query)
 
         print("[Retrieve] Retrieving top 20 chunks from Qdrant")
-        retrieved_chunks = qdrant.get(
-            query_embedding,
-            limit=20,
-        )
+        retrieved_chunks = qdrant.get(query_embedding, limit=20)
 
         print(f"[Retrieve] Retrieved {len(retrieved_chunks)} chunks")
 
-        print("[Retrieve] Reranking chunks")
-        ranked_chunks = reranker.rerank(
-            query=query,
-            documents=retrieved_chunks,
-            top_k=top_k,
-        )
+        print("[Retrieve] Reranking chunks ... (be patient)")
+        ranked_chunks = reranker.rerank(query=query, documents=retrieved_chunks)
 
         print(f"[Retrieve] Selected top {len(ranked_chunks)} chunks")
 

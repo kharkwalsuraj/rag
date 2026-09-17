@@ -22,11 +22,9 @@ from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 from typing import Any
 from collections.abc import Iterable, Sequence
-from dotenv import load_dotenv
+from rag.config import config
 
-from rag.settings import settings
 
-load_dotenv()
 API_BASE = "https://mineru.net/api/v4"
 MAX_FILE_BYTES = 200_000_000
 MAX_BATCH_FILES = 50
@@ -782,7 +780,7 @@ def parse_document_to_chunks(
                         f"{job.result_dir}. Use --convert-only after a failed conversion."
                     )
 
-            token = os.environ.get("MINERU_TOKEN", "").strip()
+            token = config.mineru_token
 
             if not token:
                 raise MinerUError(
@@ -834,6 +832,6 @@ def parse_document_to_chunks(
 
 if __name__ == "__main__" :
     parse_document_to_chunks(
-        source=settings.documents_dir,
-        mineru_output_dir=settings.mineru_output_dir
+        source=config.documents_dir,
+        mineru_output_dir=config.mineru_output_dir
     )
