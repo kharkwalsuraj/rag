@@ -36,7 +36,7 @@ class RAGConfig(BaseSettings):
     reranker_top_k: int = 5
 
     # LLM
-    google_api_key: str = Field(default="", validation_alias="GOOGLE_API")
+    google_api_key: str = Field(default="", validation_alias="GOOGLE_API_KEY")
     llm_model_id: str = "gemini-3.6-flash"
 
     model_config = SettingsConfigDict(
@@ -83,6 +83,15 @@ class RAGConfig(BaseSettings):
             raise RuntimeError(
                 f"Documents directory does not exist: {self.documents_dir}"
             )
+
+        pdfs = list(self.documents_dir.rglob("*.pdf"))
+
+        if not pdfs:
+            raise RuntimeError(
+                f"No PDF documents found in: {self.documents_dir}"
+            )
+
+        print(f"  ✓ Documents     : {len(pdfs)} PDF(s) found")
 
     def _check_dependencies(self) -> None:
         required = {

@@ -27,7 +27,7 @@ The models used by RAG can be configured from the `config.py` file. You can repl
 
 The complete RAG pipeline is illustrated below:
 
-![RAG Pipeline](assets/rag_pipeline.png)
+![RAG Pipeline](./rag_pipeline.png)
 
 ## Usage
 

@@ -21,7 +21,7 @@ def retrieve_answers(query: str, top_k: int = 5):
         print(f"[Retrieve] Retrieved {len(retrieved_chunks)} chunks")
 
         print("[Retrieve] Reranking chunks ... (be patient)")
-        ranked_chunks = reranker.rerank(query=query, documents=retrieved_chunks)
+        ranked_chunks = reranker.rerank(query=query, documents=retrieved_chunks,)
 
         print(f"[Retrieve] Selected top {len(ranked_chunks)} chunks")
 

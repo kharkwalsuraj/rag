@@ -697,7 +697,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     )
     return parser.parse_args(argv)
 
-def parse_document_to_chunks(
+def documents_to_chunks(
     source: Path | list[Path],
     mineru_output_dir: Path,
     shared_output: Path | None = None,
@@ -831,7 +831,7 @@ def parse_document_to_chunks(
 
 
 if __name__ == "__main__" :
-    parse_document_to_chunks(
+    documents_to_chunks(
         source=config.documents_dir,
         mineru_output_dir=config.mineru_output_dir
     )
