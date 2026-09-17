@@ -123,6 +123,4 @@ This project uses and is built upon:
 - [MinerU KB Packager](https://github.com/frondesce/mineru-kb-packager) - Chunking and retrieval-ready processing of MinerU outputs
 - [Google AI](https://aistudio.google.com/api-keys) - LLM API
 
-## License
-
-Add your license information here.
+### [License](../LICENSE)
